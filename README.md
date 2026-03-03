@@ -25,6 +25,9 @@ Replaces external bridge scripts with an in-process TypeScript plugin that conne
 - **Message History** — Agent tool to fetch channel/topic history (`zulip_fetch_messages`)
 - **File Downloads** — Agent tool to download uploaded files (`zulip_download_file`)
 - **Onboarding Wizard** — Interactive CLI setup via `openclaw channels add`
+- **Companion Skill** — Agent skill for Zulip conventions, @mention syntax, topic discipline
+
+![OpenClaw Zulip Features](assets/features.png)
 
 ## Requirements
 
@@ -89,7 +92,7 @@ Replaces external bridge scripts with an in-process TypeScript plugin that conne
    # Should show: Zulip ON · OK
    ```
 
-## Install the Companion Skill (Optional)
+## Install the Companion Skill
 
 The `skill/` directory contains a Zulip skill that teaches the agent Zulip-specific conventions (topic discipline, @mention syntax, channel linking, reaction etiquette).
 
