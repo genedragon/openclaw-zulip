@@ -1,0 +1,25 @@
+{
+  "name": "@openclaw/zulip",
+  "version": "2026.3.1",
+  "description": "OpenClaw Zulip channel plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "zulip",
+      "label": "Zulip",
+      "selectionLabel": "Zulip (plugin)",
+      "docsPath": "/channels/zulip",
+      "docsLabel": "zulip",
+      "blurb": "open-source team chat with threaded topics; install the plugin to enable.",
+      "order": 66
+    },
+    "install": {
+      "npmSpec": "@openclaw/zulip",
+      "localPath": "extensions/zulip",
+      "defaultChoice": "npm"
+    }
+  }
+}
