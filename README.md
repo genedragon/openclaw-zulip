@@ -32,7 +32,7 @@ Replaces external bridge scripts with an in-process TypeScript plugin that conne
 ## Requirements
 
 - [OpenClaw](https://github.com/openclaw/openclaw) (2026.2.x or later)
-- A Zulip server (self-hosted or Zulip Cloud)
+- A Zulip server (self-hosted or Zulip Cloud) — see **[Deploying Zulip on AWS EC2](ZULIP_SERVER_DEPLOYMENT.md)** if you need one
 - A Zulip bot (created via Organization Settings → Bots)
 
 ## Installation
