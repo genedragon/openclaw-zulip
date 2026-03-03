@@ -2,6 +2,15 @@
 
 Native [OpenClaw](https://github.com/openclaw/openclaw) channel plugin for [Zulip](https://zulip.com/) — self-hosted or Zulip Cloud.
 
+## Why Zulip + OpenClaw?
+
+Zulip's topic-based threading model is ideal for structured AI agent workflows:
+
+- **Brain channels** — Dedicate streams to domains (🧠 memory, 🛠️ devops, 🔍 research, 📅 triage) so your agent has organized context.
+- **Topic isolation** — Each topic gets its own agent session. Conversations don't bleed across topics.
+- **Open-source and Self-hosted** — Full control over your data. No third-party SaaS dependency for your agent's communication layer.
+- **Multi-agent** — Run multiple bots (different models, different personalities) on the same Zulip server via multi-account config.
+
 Replaces external bridge scripts with an in-process TypeScript plugin that connects directly to Zulip's event queue API. Zero external dependencies beyond OpenClaw itself.
 
 ## Features
@@ -231,6 +240,16 @@ Zulip Server
 - **No credentials are stored in the plugin source.** All secrets come from `openclaw.json` config or environment variables.
 - The `insecure` option uses a **per-request** HTTPS agent — it does NOT set the global `NODE_TLS_REJECT_UNAUTHORIZED`. Only Zulip connections are affected.
 - For production, use proper TLS certificates (e.g., Let's Encrypt) instead of `insecure: true`.
+
+## Deploying Your Own Zulip Server
+
+Don't have a Zulip server yet? See **[ZULIP_SERVER_DEPLOYMENT.md](ZULIP_SERVER_DEPLOYMENT.md)** for a step-by-step guide to deploying Zulip on AWS EC2, including:
+
+- Native install (not Docker — lessons learned the hard way)
+- PostgreSQL version gotchas on ARM/Graviton
+- SSL, SES email, authentication troubleshooting
+- Production hardening checklist
+- Cost breakdown (~$16-33/month)
 
 ## License
 
