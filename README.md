@@ -1,6 +1,6 @@
 # @openclaw/zulip
 
-Native [OpenClaw](https://github.com/openclaw/openclaw) channel plugin for [Zulip](https://zulip.com/) — self-hosted or Zulip Cloud.
+[Zulip](https://zulip.com/) channel plugin for [OpenClaw](https://github.com/openclaw/openclaw) — self-hosted or Zulip Cloud.
 
 ## Why Zulip + OpenClaw?
 
