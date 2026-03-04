@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.3.2
+
+### Added
+- **Zulip Admin skill** (`skill-admin/`) — comprehensive org admin reference covering user management, channel operations, user groups, invitations, custom emoji, linkifiers, and audit workflows
+- **`zulip-audit.py`** bundled script — quick realm health checks (users, channels, subscription maps)
+- README now documents both companion skills under "Install the Companion Skills"
+
 ## 2026.3.1 — Initial Release
 
 ### Features

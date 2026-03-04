@@ -25,7 +25,7 @@ Replaces external bridge scripts with an in-process TypeScript plugin that conne
 - **Message History** — Agent tool to fetch channel/topic history (`zulip_fetch_messages`)
 - **File Downloads** — Agent tool to download uploaded files (`zulip_download_file`)
 - **Onboarding Wizard** — Interactive CLI setup via `openclaw channels add`
-- **Companion Skill** — Agent skill for Zulip conventions, @mention syntax, topic discipline
+- **Companion Skills** — Agent skills for Zulip conventions and organization administration
 
 ![OpenClaw Zulip Features](assets/features.png)
 
@@ -91,15 +91,36 @@ Replaces external bridge scripts with an in-process TypeScript plugin that conne
    # Should show: Zulip ON · OK
    ```
 
-## Install the Companion Skill
+## Install the Companion Skills
 
-The `skill/` directory contains a Zulip skill that teaches the agent Zulip-specific conventions (topic discipline, @mention syntax, channel linking, reaction etiquette).
+This repo includes two companion skills that teach agents how to work in Zulip:
+
+### Zulip Conventions Skill (`skill/`)
+
+Teaches agents Zulip-specific conventions: topic discipline, `@**Name|ID**` mention syntax, `#**channel>topic**` linking, reaction etiquette, and how to use the plugin's message history and file download tools.
+
+**Recommended for:** All agents operating in Zulip.
 
 ```bash
 cp -r skill ~/.openclaw/skills/zulip
 ```
 
-Verify with `openclaw skills` — it should show `zulip` as **ready**.
+### Zulip Admin Skill (`skill-admin/`)
+
+Comprehensive Zulip organization administration: user management (create, deactivate, update roles), channel operations (create, archive, update permissions, subscribe/unsubscribe), user groups, custom emoji, linkifiers, invitations, and audit workflows. Includes a bundled `zulip-audit.py` script for quick realm health checks.
+
+**Recommended for:** A dedicated admin agent with Organization Administrator privileges. Not needed by every agent — only the one responsible for realm maintenance.
+
+```bash
+cp -r skill-admin ~/.openclaw/skills/zulip-admin
+```
+
+### Verify
+
+```bash
+openclaw skills
+# Should show both: zulip (ready), zulip-admin (ready)
+```
 
 ## Configuration
 
@@ -212,7 +233,11 @@ Zulip Server
 ├── openclaw.plugin.json        # Plugin manifest
 ├── package.json                # Package metadata
 ├── skill/
-│   └── SKILL.md                # Companion agent skill
+│   └── SKILL.md                # Zulip conventions skill
+├── skill-admin/
+│   ├── SKILL.md                # Zulip admin skill
+│   └── scripts/
+│       └── zulip-audit.py      # Realm audit tool
 └── src/
     ├── channel.ts              # ChannelPlugin implementation
     ├── config-schema.ts        # Zod config validation
