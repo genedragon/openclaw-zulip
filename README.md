@@ -174,6 +174,35 @@ Run multiple bots (e.g., different models) by adding named accounts:
 
 Bind accounts to agents in your `agents.list[]` configuration.
 
+
+### webmaster Skill (`skills/webmaster/`)
+
+Static site deployment and management for OpenClaw agents. Provides a CLI for building, deploying, and monitoring HTML/CSS/JS websites with S3 and CloudFront integration.
+
+**Use cases:**
+- Agent-generated documentation sites
+- Monitoring dashboards
+- Reports and analytics publishing
+- Static web applications
+
+**Features:**
+- 🏗️ Site scaffolding with templates
+- 📦 Build pipeline (validation, minification)
+- 🚀 S3 deployment
+- ☁️ CloudFront CDN integration
+- 📊 Health checks and analytics
+- 🔐 PVM integration for temporary AWS permissions
+
+```bash
+cp -r skills/webmaster ~/.openclaw/skills/webmaster
+cd ~/.openclaw/skills/webmaster
+npm install
+```
+
+See **[skills/webmaster/README.md](skills/webmaster/README.md)** for documentation.
+
+**Dependencies:** Requires [PVM (Permissions Vending Machine)](https://github.com/genedragon/permissions-vending-machine) for S3/CloudFront access.
+
 ## Agent Tools
 
 The plugin registers two tools available to all agents:
