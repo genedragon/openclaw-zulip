@@ -1,6 +1,6 @@
 ---
 name: zulip
-description: Work effectively in Zulip channels and topics. Use when operating in Zulip conversations to leverage message history fetch (`zulip_fetch_messages`), file downloads (`zulip_download_file`), topic discipline, @mention syntax (`@**Name|ID**`), channel/topic linking (`#**channel>topic**`), and Zulip-specific conventions (reactions, threading, formatting).
+description: Work effectively in Zulip channels and topics. Use when operating in Zulip conversations to leverage message history fetch (`zulip_fetch_messages`), file downloads (`zulip_download_file`), file uploads/attachments via `message(media=...)`, topic discipline, @mention syntax (`@**Name|ID**`), channel/topic linking (`#**channel>topic**`), and Zulip-specific conventions (reactions, threading, formatting).
 ---
 
 # Zulip Skill
@@ -51,6 +51,73 @@ By default, you receive recent message history (50 messages) when you join a con
 
 **Example usage:**
 "User uploads a CSV → Use `zulip_download_file` to fetch it, parse the data, and summarize."
+
+### Sending Files & Attachments
+
+The Zulip plugin supports **file uploads** when sending messages. Files are uploaded to Zulip's server via `POST /api/v1/user_uploads` and embedded as markdown links in the message. This works identically for **channel topics** and **DMs**.
+
+**How to send a file:**
+
+Use the `message` tool with the `media` or `filePath` parameter:
+
+```
+message(action=send, target=<channel_or_user>, message="Here's the report", media="https://example.com/report.pdf")
+```
+
+Or with a local file:
+
+```
+message(action=send, target=<channel_or_user>, message="Config file attached", filePath="/path/to/config.yaml")
+```
+
+Or with raw content (base64):
+
+```
+message(action=send, target=<channel_or_user>, message="Generated image", buffer="data:image/png;base64,iVBOR...")
+```
+
+**What happens under the hood:**
+1. The plugin downloads/reads the media from the URL or path
+2. Uploads it to Zulip via the user_uploads API
+3. Embeds a `[filename](zulip_url)` markdown link in the message
+4. If upload fails, falls back to appending the raw URL as text
+
+**Parameters that trigger file upload:**
+- `media` — HTTP/HTTPS URL to a file (e.g., S3 pre-signed URL, web URL)
+- `filePath` — Local filesystem path to a file
+- `buffer` — Base64-encoded content (optionally as a `data:` URL with MIME type)
+
+**Limits & behavior:**
+- Max file size: **25MB** (Zulip default; configurable by server admin)
+- Zulip 10.0+ supports **tus protocol** for resumable uploads of larger files (not yet supported in plugin)
+- File access follows message visibility — anyone who can see the message can access the file
+- Supported in both channel topics and DMs (same API, same behavior)
+- One file per message (send multiple messages for multiple files)
+
+**When to use:**
+- Sharing generated reports, logs, configs, or analysis results
+- Attaching images, screenshots, or diagrams
+- Sending files from S3, web URLs, or the local filesystem
+- Responding to requests with downloadable content
+
+**Example workflows:**
+
+_Share an S3 file in a topic:_
+```
+message(action=send, target="stream:12", topic="weekly-reports", message="Weekly report attached", media="https://bucket.s3.amazonaws.com/report.pdf?X-Amz-...")
+```
+
+_Send a generated text file:_
+```
+# First write to disk, then attach
+write("/tmp/analysis.md", content="# Analysis\n...")
+message(action=send, target="stream:12", message="Analysis complete", filePath="/tmp/analysis.md")
+```
+
+_Attach an image in a DM:_
+```
+message(action=send, target="user:11", message="Here's the screenshot", media="https://example.com/screenshot.png")
+```
 
 ---
 
@@ -204,4 +271,4 @@ When you first join a Zulip workspace:
 
 ---
 
-**Last updated:** 2026-03-02 23:15 UTC
+**Last updated:** 2026-03-11 15:10 UTC
