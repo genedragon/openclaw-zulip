@@ -56,36 +56,41 @@ By default, you receive recent message history (50 messages) when you join a con
 
 The Zulip plugin supports **file uploads** when sending messages. Files are uploaded to Zulip's server via `POST /api/v1/user_uploads` and embedded as markdown links in the message. This works identically for **channel topics** and **DMs**.
 
-**How to send a file:**
+**⚠️ Only ONE method reliably works (as of 2026-03-11 live testing):**
 
-Use the `message` tool with the `media` or `filePath` parameter:
+### ✅ Use `media=<HTTP_URL>` — CONFIRMED WORKING
 
 ```
 message(action=send, target=<channel_or_user>, message="Here's the report", media="https://example.com/report.pdf")
 ```
 
-Or with a local file:
+The plugin downloads the file from the HTTP/HTTPS URL, uploads it to Zulip via the user_uploads API, and embeds it as a clickable `[filename](zulip_url)` markdown link.
+
+**Practical pattern:** Upload your file to S3 (or any public/pre-signed URL), then pass the URL as `media=`.
+
+### ❌ `filePath=/local/path` — SILENTLY BROKEN (known bug)
 
 ```
-message(action=send, target=<channel_or_user>, message="Config file attached", filePath="/path/to/config.yaml")
+# DO NOT USE — silently fails, no error, no attachment
+message(action=send, ..., filePath="/path/to/file.md")
 ```
 
-Or with raw content (base64):
+`core.media.loadWebMedia()` only handles HTTP URLs. Local paths are silently dropped. No error is thrown. Bug filed.
+
+### ❌ `buffer=data:base64,...` — SILENTLY IGNORED (known bug)
 
 ```
-message(action=send, target=<channel_or_user>, message="Generated image", buffer="data:image/png;base64,iVBOR...")
+# DO NOT USE — buffer parameter is not implemented for file uploads
+message(action=send, ..., buffer="data:text/markdown;base64,...")
 ```
 
-**What happens under the hood:**
-1. The plugin downloads/reads the media from the URL or path
+The `buffer` parameter does not map to `mediaUrl` in the channel adapter. It's silently ignored. Bug filed.
+
+**What happens under the hood (for `media=<URL>`):**
+1. The plugin downloads the file from the HTTP URL
 2. Uploads it to Zulip via the user_uploads API
 3. Embeds a `[filename](zulip_url)` markdown link in the message
 4. If upload fails, falls back to appending the raw URL as text
-
-**Parameters that trigger file upload:**
-- `media` — HTTP/HTTPS URL to a file (e.g., S3 pre-signed URL, web URL)
-- `filePath` — Local filesystem path to a file
-- `buffer` — Base64-encoded content (optionally as a `data:` URL with MIME type)
 
 **Limits & behavior:**
 - Max file size: **25MB** (Zulip default; configurable by server admin)
@@ -97,7 +102,7 @@ message(action=send, target=<channel_or_user>, message="Generated image", buffer
 **When to use:**
 - Sharing generated reports, logs, configs, or analysis results
 - Attaching images, screenshots, or diagrams
-- Sending files from S3, web URLs, or the local filesystem
+- Sending files from S3, web URLs, or publicly accessible HTTP endpoints
 - Responding to requests with downloadable content
 
 **Example workflows:**
