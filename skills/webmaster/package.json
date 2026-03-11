@@ -1,0 +1,25 @@
+{
+  "name": "openclaw-skill-webmaster",
+  "version": "5.0.0",
+  "description": "OpenClaw skill: Deploy and manage static websites on AWS with CloudFront, quality checks, and deployment registry",
+  "scripts": {
+    "deploy": "node scripts/deploy.js",
+    "push": "node scripts/push.js",
+    "list": "node scripts/list.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-sts": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  },
+  "optionalDependencies": {
+    "pa11y": "^9.1.1"
+  },
+  "keywords": ["openclaw", "skill", "webmaster", "static-site", "aws", "cloudfront", "s3"],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
