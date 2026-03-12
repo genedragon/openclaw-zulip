@@ -193,11 +193,9 @@ export async function sendMessageZulip(
       message = `${message}\n\n[${fileName}](${fileInfo.url})`.trim();
     } catch (err) {
       uploadError = err instanceof Error ? err : new Error(String(err));
-      if (core.logging.shouldLogVerbose()) {
-        logger.debug?.(
-          `zulip send: media upload failed, falling back to URL text: ${String(err)}`,
-        );
-      }
+      logger.warn?.(
+        `zulip send: media upload failed, falling back to URL text: ${String(err)}`,
+      );
       message = normalizeMessage(message, isHttpUrl(mediaUrl) ? mediaUrl : "");
     }
   }
