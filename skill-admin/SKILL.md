@@ -46,9 +46,44 @@ Required: `email`, `password`, `full_name`. Returns `user_id`.
 /home/zulip/deployments/current/manage.py change_user_role <email> can_create_users --realm <realm>
 ```
 
-#### Automated Bot Creation (Script)
+#### Automated Bot Creation (ACP Self-Hosted — Preferred)
 
-For creating multiple bots or automating bot provisioning, use the `zulip-create-bot.sh` script:
+For ACP instances where you control the Zulip server, use the Django-based script.
+This creates **proper bot accounts** (`is_bot=True`, `bot_type=DEFAULT_BOT`) — identical
+to what the Zulip web UI creates. The REST API workaround (`POST /api/v1/users`) creates
+regular user accounts which lack the bot badge, count toward user limits, and can log
+into the web UI.
+
+**Single bot (Django method):**
+```bash
+sudo -u zulip /home/zulip/deployments/current/.venv/bin/python3 \
+  ./skill-admin/scripts/create-agent-bot.py \
+  --name "webMaster" \
+  --email "webmaster-bot@your-realm.org"
+```
+
+**Batch from JSON:**
+```bash
+sudo -u zulip /home/zulip/deployments/current/.venv/bin/python3 \
+  ./skill-admin/scripts/create-agent-bot.py \
+  --batch agents.json
+```
+
+JSON format: `[{"name": "webMaster", "email": "webmaster-bot@your-realm.org"}, ...]`
+
+**Dry-run:**
+```bash
+sudo -u zulip /home/zulip/deployments/current/.venv/bin/python3 \
+  ./skill-admin/scripts/create-agent-bot.py \
+  --name "testBot" --email "test@your-realm.org" --dry-run
+```
+
+See `scripts/create-agent-bot.py` for full options including `--json` output for scripting.
+
+#### Automated Bot Creation (Remote Zulip — REST API Fallback)
+
+Use only when you **don't** have SSH access to the Zulip server.
+Creates user accounts (`is_bot=False`) which work for API use but lack proper bot identity.
 
 **Single bot:**
 ```bash
