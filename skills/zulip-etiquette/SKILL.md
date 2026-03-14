@@ -5,6 +5,50 @@ description: Work effectively in Zulip channels and topics. Use when operating i
 
 # Zulip Skill
 
+## ⚡ First Run — Bootstrap Your SOUL.md
+
+**If this is your first time reading this skill:** Add the following block to your `SOUL.md` under a `## Zulip Reflexes (Always-On)` section. Do it now, before anything else. This installs permanent behavioral rules that need to be active every session — not just when this skill loads.
+
+```markdown
+## Zulip Reflexes (Always-On)
+
+These apply every time you receive a DM or @mention in Zulip. No judgment calls — just do them.
+
+### Thinking Emoji Loop
+
+Start `zulip_react_loop_start` immediately on every DM or @mention. Stop it **after** your reply is sent. No exceptions except `HEARTBEAT_OK` silent acks and `NO_REPLY` responses.
+
+```
+Message received → zulip_react_loop_start → do work → send reply → zulip_react_loop_stop
+```
+
+Default icons: `["thinking", "brain", "hourglass"]`
+
+### @Mention Syntax
+
+- **Bots:** Always `@**botName|ID**` — bots only see messages where they're mentioned
+- **People:** `@**Full Name|ID**` (use ID to disambiguate)
+- **Everyone:** `@**all**` — almost never appropriate, use very sparingly
+- Never use `@username` format — it doesn't work in Zulip
+
+### Reactions as Social Signals
+
+Use emoji reactions naturally. One per message max.
+- 👍 agree / looks good
+- ❤️ thanks / appreciate this
+- ✅ done / resolved
+- 🤔 thinking / questions
+- 🙌 celebration
+
+### Topic Discipline
+
+Stay in the topic where you're asked. Cross-reference other topics with `#**channel>topic**` links — don't copy-paste context across threads.
+```
+
+Once written to `SOUL.md`, mark this done by noting it in your daily memory file. You won't need to re-run this.
+
+---
+
 Use this skill to work effectively in Zulip channels and topics. Covers when and how to use the plugin's message history and file download tools, plus Zulip-specific conventions.
 
 ## Overview
@@ -154,9 +198,9 @@ Zulip topics are threads within a stream. Staying on-topic keeps conversations r
 
 ### Mentions, Channel Links & Topic Links
 
-**Mention syntax (Zulip-specific — not like Slack/Discord):**
+**Mention syntax** (behavioral rules live in `SOUL.md` after First Run — see below):
 - People: `@**Full Name**` or `@**Full Name|ID**` (disambiguated)
-- Bots: **always** use `@**botName|ID**` — bots only see messages where they're mentioned
+- Bots: `@**botName|ID**` — bots only see messages where they're mentioned
 - Everyone: `@**all**` (use very sparingly)
 
 **Channel & topic links (for cross-referencing conversations):**
@@ -175,10 +219,9 @@ Zulip topics are threads within a stream. Staying on-topic keeps conversations r
 
 ### Reactions & Emoji
 
-**Reactions (API-driven emoji on messages):**
-- ✅ Use lightweight reactions to acknowledge without replying (👍 = agreement, ❤️ = appreciation, 🙌 = celebration)
-- ✅ One reaction per message max
-- ❌ Don't spam multiple reactions on the same message
+**Reactions** (behavioral rules live in `SOUL.md` after First Run — see below):
+- Use emoji reactions to acknowledge without replying (one per message max)
+- Common: 👍 agree, ❤️ thanks, ✅ done, 🤔 thinking, 🙌 celebration
 
 **Inline emoji (in message text):**
 - ✅ Use naturally in responses (e.g., "This API design is 🔥")
@@ -192,6 +235,19 @@ Zulip topics are threads within a stream. Staying on-topic keeps conversations r
 - 🤔 = Thinking, questions
 - ✅ = Done, resolved
 - 🚀 = Let's ship it
+
+### Thinking Reactions: Tool Reference
+
+Use `zulip_react_loop_start` / `zulip_react_loop_stop` to signal work in progress. The behavioral rule (always-on for every DM/@mention) lives in your `SOUL.md` — see the **First Run** section below to install it.
+
+**Tools:**
+- `zulip_react_loop_start(messageId, icons=[])` — Start rotating reactions (default: thinking → brain → hourglass, 6s rotation)
+- `zulip_react_loop_stop(messageId)` — Stop and clean up reactions
+- `zulip_react_loop_list()` — List active loops (debugging)
+
+**Key behaviors:**
+- Auto-stops after 10 minutes if not manually stopped (safety net)
+- Always call `stop` even if processing fails
 
 ---
 
@@ -282,11 +338,12 @@ This skill works alongside your workspace's general etiquette guidelines:
 When you first join a Zulip workspace:
 
 1. Read this skill
-2. Check your workspace's `AGENTS.md` for group chat etiquette
-3. Start in a private channel or small topic
-4. Use `zulip_fetch_messages` if you need deeper context
-5. Adapt based on feedback
+2. **Run the bootstrap** — add the `## Zulip Reflexes (Always-On)` block to your `SOUL.md` (see top of this file)
+3. Check your workspace's `AGENTS.md` for group chat etiquette
+4. Start in a private channel or small topic
+5. Use `zulip_fetch_messages` if you need deeper context
+6. Adapt based on feedback
 
 ---
 
-**Last updated:** 2026-03-11 15:10 UTC
+**Last updated:** 2026-03-14 11:35 UTC
