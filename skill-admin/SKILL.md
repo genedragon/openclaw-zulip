@@ -46,53 +46,6 @@ Required: `email`, `password`, `full_name`. Returns `user_id`.
 /home/zulip/deployments/current/manage.py change_user_role <email> can_create_users --realm <realm>
 ```
 
-#### Automated Bot Creation (Script)
-
-For creating multiple bots or automating bot provisioning, use the `zulip-create-bot.sh` script:
-
-**Single bot:**
-```bash
-./skill-admin/scripts/zulip-create-bot.sh \
-  --email newbot@your-realm.org \
-  --name "New Bot" \
-  --password "TempPassword123"
-```
-
-**Batch creation from CSV:**
-```bash
-./skill-admin/scripts/zulip-create-bot.sh --batch bots.csv
-```
-
-**CSV format** (`examples/example-bots.csv`):
-```csv
-email,name,password
-bot1@your-realm.org,Bot One,TempPass123
-bot2@your-realm.org,Bot Two,TempPass123
-```
-
-**JSON format** (`examples/example-bots.json`):
-```json
-{
-  "bots": [
-    {"email": "bot1@your-realm.org", "name": "Bot One", "password": "TempPass123"},
-    {"email": "bot2@your-realm.org", "name": "Bot Two", "password": "TempPass123"}
-  ]
-}
-```
-
-**Features:**
-- Dry-run mode (`--dry-run`) to test without creating
-- Comprehensive logging to `~/.openclaw/workspace-{agent}/logs/zulip-create-bot.log`
-- Email and password validation
-- Duplicate detection
-- Automatic realm detection from `~/.zuliprc`
-
-**Requirements:**
-- Valid `.zuliprc` configuration or environment variables
-- `can_create_users` permission (granted via management command above)
-
-Run `./skill-admin/scripts/zulip-create-bot.sh --help` for full documentation.
-
 ### Update User
 
 ```
