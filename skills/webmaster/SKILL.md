@@ -1,6 +1,6 @@
 ---
 name: webmaster
-version: 3.0.0
+version: 3.1.0
 description: "Deploy static websites with dedicated buckets, auto asset path fixing, and deployment registry. One bucket per site, clean URLs, tracked in DynamoDB."
 ---
 
@@ -96,25 +96,30 @@ Examples:
   node scripts/registry.js find-url https://d12oif.cloudfront.net/
 ```
 
-### `rewrite-paths.js` - Fix Asset Paths
+### `fix-policy.js` - Repair Bucket Policy
+
+If a deployment shows CloudFront `AccessDenied` errors, use this to fix the S3 bucket policy:
 
 ```bash
-node scripts/rewrite-paths.js <directory> [options]
+node scripts/fix-policy.js <bucket-name> <distribution-id>
 
-Options:
-  --prefix PATH     Deployment prefix (for subdirectories)
-  --dry-run         Preview changes without modifying files
-  --verbose         Show detailed output
+Example:
+  node scripts/fix-policy.js webmaster-orgchart-1773585213200 E1HB0DGHE917BX
 
-Examples:
-  # Root deployment (most common)
-  node scripts/rewrite-paths.js ./site
+# Find your bucket and distribution:
+  node scripts/list.js --owner=your-agent
+  node scripts/registry.js get site-id
+```
 
-  # Subdirectory deployment
-  node scripts/rewrite-paths.js ./site --prefix blog
+**What it does:**
+1. Checks current bucket policy
+2. Adds/updates CloudFront OAC principal access
+3. Sets correct SourceArn condition
+4. Applies updated policy
 
-  # Preview changes
-  node scripts/rewrite-paths.js ./site --dry-run --verbose
+**Note:** Changes propagate in 1-2 minutes. Test with:
+```bash
+curl -I https://<cloudfront-domain>/index.html
 ```
 
 ## DynamoDB Registry Schema
@@ -204,10 +209,13 @@ S3 Bucket (Private)
 **Solution:** Auto-rewrite to absolute paths before upload  
 **Status:** ✅ Fixed in v3
 
-### Issue #2: CloudFront 403 Errors
-**Problem:** DefaultRootObject pointed to wrong path  
-**Solution:** Deploy to root, DefaultRootObject = `index.html`  
-**Status:** ✅ Fixed in v3 (dedicated buckets eliminate path confusion)
+### Issue #2: CloudFront 403 AccessDenied (Critical)
+**Problem:** Deployments created with bucket policy, but policy wasn't applied before CloudFront tried to access objects  
+**Solution:** 
+  - Explicit error handling on policy creation
+  - Verification step before marking deployment complete
+  - `fix-policy.js` tool to repair existing deployments
+**Status:** ✅ Fixed in v3.1 (2026-03-15)
 
 ### Issue #3: Ugly URLs
 **Problem:** URLs had `/prefix/` suffix  
@@ -244,13 +252,27 @@ await registerDeployment({
 
 ## Troubleshooting
 
-### CloudFront Returns 403 Error
+### CloudFront Returns 403 AccessDenied
+- **Cause:** S3 bucket policy doesn't grant CloudFront access
+- **Status Check:** 
+  ```bash
+  curl -I https://<cloudfront-domain>/index.html
+  # HTTP/1.1 403 Forbidden = policy issue
+  ```
+- **Fix:** Use `fix-policy.js` to repair:
+  ```bash
+  node scripts/fix-policy.js <bucket-name> <distribution-id>
+  ```
+- **Why this happens:** Distribution deploys asynchronously; if policy update fails silently, CloudFront can't access objects
+- **Prevention:** `deploy.js` now verifies access before marking complete ✅
+
+### CloudFront Returns 404 Error
 - **Cause:** Distribution still deploying (takes 2-3 minutes)
 - **Fix:** Wait, then check: `aws cloudfront get-distribution --id DIST_ID`
 
 ### CSS/JS Not Loading
-- **Cause:** Asset paths not rewritten
-- **Fix:** Run `rewrite-paths.js` manually, then re-upload
+- **Cause:** Asset paths not rewritten to absolute paths
+- **Fix:** Run `rewrite-paths.js` manually, then re-upload with `push.js`
 
 ### Site Not in Registry
 - **Cause:** Deployed with v2, not registered
@@ -272,6 +294,12 @@ Questions? Issues? Found a bug?
 
 ---
 
-**Version:** 3.0.0  
-**Last Updated:** 2026-03-10  
+**Version:** 3.1.0  
+**Last Updated:** 2026-03-15  
 **Status:** Production-ready ✅
+
+**Changes in 3.1.0:**
+- Added explicit error handling for bucket policy creation
+- Added CloudFront access verification step before marking complete
+- Added `fix-policy.js` tool to repair existing deployments
+- Enhanced troubleshooting documentation for AccessDenied errors
