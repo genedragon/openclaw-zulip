@@ -13,6 +13,11 @@ import {
 } from "./client.js";
 import { resolveZulipAccount } from "./accounts.js";
 import { getZulipRuntime } from "../runtime.js";
+import {
+  startReactionLoop,
+  stopReactionLoop,
+  listActiveLoops,
+} from "./reaction-loops.js";
 
 // Inline context type — matches OpenClawPluginToolContext but avoids
 // importing a non-exported symbol from the SDK.
@@ -288,6 +293,149 @@ export function createDownloadFileTool(): (ctx: ToolContext) => AnyAgentTool {
           },
         ],
         details: { fileName, contentType, size: buffer.length, path: tmpPath },
+      };
+    },
+  });
+}
+
+// ── Tool: zulip_react_loop_start ─────────────────────────────────────
+
+const reactLoopStartParams = Type.Object({
+  messageId: Type.String({
+    description: "Zulip message ID to show thinking reactions on",
+  }),
+  icons: Type.Optional(
+    Type.Array(Type.String(), {
+      description: 'Array of emoji names to rotate (default: ["thinking", "brain", "hourglass"])',
+    }),
+  ),
+});
+
+export function createReactLoopStartTool(): (ctx: ToolContext) => AnyAgentTool {
+  return (ctx: ToolContext): AnyAgentTool => ({
+    name: "zulip_react_loop_start",
+    label: "Start Zulip Thinking Reaction Loop",
+    description:
+      "Start a rotating emoji reaction loop on a Zulip message to indicate ongoing work. " +
+      "The loop rotates through emoji every 6 seconds and auto-stops after 10 minutes. " +
+      "Use this when starting a long-running task to keep users informed.",
+    parameters: reactLoopStartParams,
+    async execute(_toolCallId, params) {
+      const runtime = getZulipRuntime();
+      const cfg = runtime.config.loadConfig();
+      const accountId = ctx.agentAccountId ?? "default";
+
+      const result = await startReactionLoop({
+        messageId: params.messageId,
+        icons: params.icons,
+        cfg,
+        accountId,
+      });
+
+      if (!result.ok) {
+        return {
+          content: [{ type: "text", text: `Failed to start reaction loop: ${result.error}` }],
+          details: { error: result.error },
+        };
+      }
+
+      const icons = params.icons ?? ["thinking", "brain", "hourglass"];
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `Started thinking reaction loop on message ${params.messageId}.\n` +
+              `Rotating: ${icons.join(" → ")}\n` +
+              `Will auto-stop after 10 minutes if not stopped manually.`,
+          },
+        ],
+        details: { loopId: result.loopId, icons },
+      };
+    },
+  });
+}
+
+// ── Tool: zulip_react_loop_stop ──────────────────────────────────────
+
+const reactLoopStopParams = Type.Object({
+  messageId: Type.String({
+    description: "Zulip message ID to stop the reaction loop on",
+  }),
+});
+
+export function createReactLoopStopTool(): (ctx: ToolContext) => AnyAgentTool {
+  return (ctx: ToolContext): AnyAgentTool => ({
+    name: "zulip_react_loop_stop",
+    label: "Stop Zulip Thinking Reaction Loop",
+    description:
+      "Stop a rotating emoji reaction loop on a Zulip message. " +
+      "This removes the current thinking reaction and cleans up the loop. " +
+      "Call this when your task completes.",
+    parameters: reactLoopStopParams,
+    async execute(_toolCallId, params) {
+      const result = await stopReactionLoop({
+        messageId: params.messageId,
+      });
+
+      if (!result.ok) {
+        return {
+          content: [{ type: "text", text: `Failed to stop reaction loop: ${result.error}` }],
+          details: { error: result.error },
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Stopped thinking reaction loop on message ${params.messageId} and cleaned up reactions.`,
+          },
+        ],
+        details: { messageId: params.messageId },
+      };
+    },
+  });
+}
+
+// ── Tool: zulip_react_loop_list ──────────────────────────────────────
+
+const reactLoopListParams = Type.Object({});
+
+export function createReactLoopListTool(): (ctx: ToolContext) => AnyAgentTool {
+  return (_ctx: ToolContext): AnyAgentTool => ({
+    name: "zulip_react_loop_list",
+    label: "List Active Zulip Reaction Loops",
+    description:
+      "List all currently active thinking reaction loops. " +
+      "Use this to debug or check what loops are running.",
+    parameters: reactLoopListParams,
+    async execute(_toolCallId, _params) {
+      const loops = listActiveLoops();
+
+      if (loops.length === 0) {
+        return {
+          content: [{ type: "text", text: "No active thinking reaction loops." }],
+          details: { count: 0 },
+        };
+      }
+
+      const formatted = loops.map((loop) => {
+        const runningSecs = Math.floor(loop.runningFor / 1000);
+        return (
+          `• Message ${loop.messageId}: ${loop.icons.join(" → ")} ` +
+          `(current: ${loop.currentEmoji}, running ${runningSecs}s)`
+        );
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Active loops (${loops.length}):\n${formatted.join("\n")}`,
+          },
+        ],
+        details: { count: loops.length, loops },
       };
     },
   });
