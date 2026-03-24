@@ -100,7 +100,7 @@ By default, you receive recent message history (50 messages) when you join a con
 
 The Zulip plugin supports **file uploads** when sending messages. Files are uploaded to Zulip's server via `POST /api/v1/user_uploads` and embedded as markdown links in the message. This works identically for **channel topics** and **DMs**.
 
-**⚠️ Only ONE method reliably works (as of 2026-03-11 live testing):**
+**⚠️ Only ONE method reliably works (as of 2026-03-19 audit):**
 
 ### ✅ Use `media=<HTTP_URL>` — CONFIRMED WORKING
 
@@ -108,22 +108,18 @@ The Zulip plugin supports **file uploads** when sending messages. Files are uplo
 message(action=send, target=<channel_or_user>, message="Here's the report", media="https://example.com/report.pdf")
 ```
 
-The plugin downloads the file from the HTTP/HTTPS URL, uploads it to Zulip via the user_uploads API, and embeds it as a clickable `[filename](zulip_url)` markdown link.
+The plugin downloads the file from the HTTP/HTTPS URL, uploads it to Zulip's user_uploads API, and embeds it as a clickable `[filename](/user_uploads/...)` markdown link. After upload, the file lives at a `/user_uploads/<realm>/<hash>/filename` path — the same folder pattern as all Zulip user uploads.
 
-**Practical pattern:** Upload your file to S3, generate a pre-signed URL, then pass it as `media=`.
+**Any HTTP/HTTPS URL works** — publicly accessible URLs, S3 pre-signed URLs, CDN links, etc. Use whatever HTTP source is available for your file.
 
-**S3 bucket for Zulip attachments (local environment):**
-- **Bucket:** `acp-bucket-030626`
-- **Prefix:** `zulip-attachments/` — always use this prefix to keep bot uploads organized and separated from other content
-- **Example key:** `zulip-attachments/report-2026-03-11.pdf`
+**If you only have a local file** (no HTTP URL), upload it to a staging location (S3, a temp HTTP server, etc.) first to get an HTTP URL:
 
 ```bash
-# Upload a local file and get a pre-signed URL
-aws s3 cp /tmp/myfile.pdf s3://acp-bucket-030626/zulip-attachments/myfile.pdf
-aws s3 presign s3://acp-bucket-030626/zulip-attachments/myfile.pdf --expires-in 3600
+# Example: S3 workaround for local files
+aws s3 cp /tmp/myfile.pdf s3://<your-bucket>/zulip-attachments/myfile.pdf
+aws s3 presign s3://<your-bucket>/zulip-attachments/myfile.pdf --expires-in 3600
+# Then pass the pre-signed URL as media= in the message tool
 ```
-
-Then pass the pre-signed URL as `media=` in the message tool.
 
 ### ❌ `filePath=/local/path` — SILENTLY BROKEN (known bug)
 
@@ -132,7 +128,7 @@ Then pass the pre-signed URL as `media=` in the message tool.
 message(action=send, ..., filePath="/path/to/file.md")
 ```
 
-`core.media.loadWebMedia()` only handles HTTP URLs. Local paths are silently dropped. No error is thrown. Bug filed.
+`core.media.loadWebMedia()` only handles HTTP URLs. Local paths are silently dropped. No error is thrown. Bug filed; use the HTTP URL workaround above until fixed.
 
 ### ❌ `buffer=data:base64,...` — SILENTLY IGNORED (known bug)
 
@@ -141,12 +137,12 @@ message(action=send, ..., filePath="/path/to/file.md")
 message(action=send, ..., buffer="data:text/markdown;base64,...")
 ```
 
-The `buffer` parameter does not map to `mediaUrl` in the channel adapter. It's silently ignored. Bug filed.
+The `buffer` parameter does not map to `mediaUrl` in the channel adapter. It's silently ignored. Bug filed; use the HTTP URL workaround above until fixed.
 
 **What happens under the hood (for `media=<URL>`):**
 1. The plugin downloads the file from the HTTP URL
-2. Uploads it to Zulip via the user_uploads API
-3. Embeds a `[filename](zulip_url)` markdown link in the message
+2. Uploads it to Zulip via `POST /api/v1/user_uploads`
+3. Embeds a `[filename](/user_uploads/...)` markdown link in the message
 4. If upload fails, falls back to appending the raw URL as text
 
 **Limits & behavior:**
@@ -159,26 +155,37 @@ The `buffer` parameter does not map to `mediaUrl` in the channel adapter. It's s
 **When to use:**
 - Sharing generated reports, logs, configs, or analysis results
 - Attaching images, screenshots, or diagrams
-- Sending files from S3, web URLs, or publicly accessible HTTP endpoints
+- Sending files from any publicly accessible HTTP endpoint
 - Responding to requests with downloadable content
 
 **Example workflows:**
 
-_Share an S3 file in a topic:_
+_Share a public URL as a Zulip-native attachment:_
 ```
-message(action=send, target="stream:12", topic="weekly-reports", message="Weekly report attached", media="https://bucket.s3.amazonaws.com/report.pdf?X-Amz-...")
+message(action=send, target="stream:12", topic="weekly-reports", message="Weekly report attached", media="https://example.com/report.pdf")
 ```
 
-_Send a generated text file:_
+_Share a local file via S3 workaround:_
+```bash
+# Step 1: Upload to S3
+aws s3 cp /tmp/analysis.md s3://<your-bucket>/zulip-attachments/analysis.md
+# Step 2: Get pre-signed URL (1 hour)
+URL=$(aws s3 presign s3://<your-bucket>/zulip-attachments/analysis.md --expires-in 3600)
 ```
-# First write to disk, then attach
-write("/tmp/analysis.md", content="# Analysis\n...")
-message(action=send, target="stream:12", message="Analysis complete", filePath="/tmp/analysis.md")
+```
+# Step 3: Send to Zulip
+message(action=send, target="stream:12", topic="reports", message="Analysis complete", media="$URL")
 ```
 
 _Attach an image in a DM:_
 ```
 message(action=send, target="user:11", message="Here's the screenshot", media="https://example.com/screenshot.png")
+```
+
+_DO NOT do this (broken, no error):_
+```
+# ❌ WRONG — filePath silently dropped, no attachment, no error
+message(action=send, target="stream:12", message="Here you go", filePath="/tmp/analysis.md")
 ```
 
 ---
@@ -292,11 +299,11 @@ Zulip supports Markdown:
 - *Italic:* `*text*`
 - `Code:` `` `code` ``
 - Code block:
-  ```
+  ````
   ```language
   code here
   ```
-  ```
+  ````
 - Lists: Use `-` or `*` for bullets, `1.` for numbered
 - Links: `[text](url)`
 
@@ -346,4 +353,4 @@ When you first join a Zulip workspace:
 
 ---
 
-**Last updated:** 2026-03-14 11:35 UTC
+**Last updated:** 2026-03-19 — Fixed file attachment section: removed broken `filePath` example; clarified `media=<HTTP_URL>` works with any HTTP URL (S3 is optional workaround, not required); added `/user_uploads/` folder pattern context; documented `filePath` and `buffer` as silently broken with clear anti-pattern examples.
