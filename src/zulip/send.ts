@@ -14,6 +14,7 @@ export type ZulipSendOpts = {
   baseUrl?: string;
   accountId?: string;
   mediaUrl?: string;
+  mediaLocalRoots?: readonly string[];
   replyToId?: string;
   topic?: string;
 };
@@ -182,7 +183,9 @@ export async function sendMessageZulip(
 
   if (mediaUrl) {
     try {
-      const media = await core.media.loadWebMedia(mediaUrl);
+      const media = await core.media.loadWebMedia(mediaUrl, {
+        localRoots: opts.mediaLocalRoots ?? "any",
+      });
       const fileInfo = await uploadZulipFile(client, {
         buffer: media.buffer,
         fileName: media.fileName ?? "upload",
@@ -194,9 +197,13 @@ export async function sendMessageZulip(
     } catch (err) {
       uploadError = err instanceof Error ? err : new Error(String(err));
       logger.warn?.(
-        `zulip send: media upload failed, falling back to URL text: ${String(err)}`,
+        `zulip send: media upload failed: ${String(err)}`,
       );
-      message = normalizeMessage(message, isHttpUrl(mediaUrl) ? mediaUrl : "");
+      // Only fall back to URL text for HTTP URLs — local paths can't be linked
+      if (isHttpUrl(mediaUrl)) {
+        message = normalizeMessage(message, mediaUrl);
+      }
+      // For local paths, uploadError will be re-thrown below if message is also empty
     }
   }
 

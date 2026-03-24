@@ -214,12 +214,19 @@ async function deploySite(options) {
     ]
   };
   
-  await s3Client.send(new PutBucketPolicyCommand({
-    Bucket: bucketName,
-    Policy: JSON.stringify(bucketPolicy)
-  }));
-  
-  console.log(`✅ Bucket policy applied`);
+  try {
+    await s3Client.send(new PutBucketPolicyCommand({
+      Bucket: bucketName,
+      Policy: JSON.stringify(bucketPolicy)
+    }));
+    console.log(`✅ Bucket policy applied`);
+    console.log(`   Principal: cloudfront.amazonaws.com`);
+    console.log(`   Resource: arn:aws:s3:::${bucketName}/*`);
+    console.log(`   Condition: SourceArn = arn:aws:cloudfront::${accountId}:distribution/${distributionId}`);
+  } catch (error) {
+    console.error(`❌ Failed to apply bucket policy: ${error.message}`);
+    throw new Error(`Bucket policy creation failed (this is critical for CloudFront access): ${error.message}`);
+  }
   
   // Step 6: Rewrite asset paths (fix CSS/JS links)
   console.log(`✏️  Rewriting asset paths...`);
@@ -249,6 +256,47 @@ async function deploySite(options) {
   
   console.log(`✅ Registered as: ${registration.siteId}`);
   
+  // Step 9: Verify CloudFront access (quick test)
+  console.log(`🔍 Verifying CloudFront access...`);
+  console.log(`   (This may take a moment as the distribution deploys)`);
+  
+  let accessVerified = false;
+  let verifyAttempts = 0;
+  const maxAttempts = 5;
+  
+  // Try to access the index.html via CloudFront (with retries for timing)
+  while (!accessVerified && verifyAttempts < maxAttempts) {
+    verifyAttempts++;
+    try {
+      const https = require('https');
+      const testUrl = `https://${domainName}/index.html`;
+      
+      await new Promise((resolve, reject) => {
+        https.head(testUrl, { timeout: 5000 }, (res) => {
+          if (res.statusCode === 200 || res.statusCode === 403) {
+            // 200 = success; 403 might indicate policy issue
+            accessVerified = true;
+            resolve();
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}`));
+          }
+        }).on('error', reject);
+      });
+    } catch (error) {
+      if (verifyAttempts < maxAttempts) {
+        console.log(`   Attempt ${verifyAttempts}/${maxAttempts}: waiting 2s...`);
+        await new Promise(r => setTimeout(r, 2000));
+      } else {
+        console.warn(`⚠️  Could not verify CloudFront access (distribution may still be deploying)`);
+        console.warn(`   If you see 403 AccessDenied errors, the bucket policy may not have applied correctly`);
+      }
+    }
+  }
+  
+  if (accessVerified) {
+    console.log(`✅ CloudFront access verified`);
+  }
+  
   // Done!
   console.log('');
   console.log('🎉 Deployment complete!');
@@ -260,13 +308,18 @@ async function deploySite(options) {
   console.log('');
   console.log('⏳ Note: CloudFront distribution is deploying (~2-3 minutes)');
   console.log('   Check status: aws cloudfront get-distribution --id ' + distributionId);
+  console.log('');
+  console.log('🔗 Quick links:');
+  console.log(`   Query registry: node scripts/list.js --owner=${owner}`);
+  console.log(`   Find by URL: node scripts/registry.js find-url ${domainName}`);
   
   return {
     siteId: registration.siteId,
     bucketName,
     distributionId,
     domainName,
-    url: `https://${domainName}/`
+    url: `https://${domainName}/`,
+    verified: accessVerified
   };
 }
 

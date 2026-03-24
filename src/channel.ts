@@ -280,11 +280,12 @@ export const zulipPlugin: ChannelPlugin<ResolvedZulipAccount> = {
       });
       return { channel: "zulip", ...result };
     },
-    sendMedia: async ({ to, text, mediaUrl, accountId, replyToId, threadId }) => {
+    sendMedia: async ({ to, text, mediaUrl, mediaLocalRoots, accountId, replyToId, threadId }) => {
       const topic = threadId != null ? String(threadId) : undefined;
       const result = await sendMessageZulip(to, text, {
         accountId: accountId ?? undefined,
         mediaUrl,
+        mediaLocalRoots,
         replyToId: replyToId ?? undefined,
         topic,
       });
