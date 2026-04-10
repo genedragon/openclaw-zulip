@@ -227,7 +227,13 @@ export async function sendMessageZulip(
 
   if (target.kind === "stream") {
     // Stream message
-    const topic = target.topic?.trim() || opts.topic?.trim() || "general";
+    const topic = target.topic?.trim() || opts.topic?.trim();
+    if (!topic) {
+      throw new Error(
+        `Zulip stream message to "${target.name}" requires a topic. ` +
+        `Specify threadId in the message tool call, or include topic in the target.`
+      );
+    }
     const body = new URLSearchParams({
       type: "stream",
       to: target.name,

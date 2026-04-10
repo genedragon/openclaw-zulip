@@ -397,6 +397,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     }
 
     const roomLabel = streamName ? `#${streamName}` : `#${channelId}`;
+    const topicLabel = topicName ? `${roomLabel} > ${topicName}` : roomLabel;
 
     const route = core.channel.routing.resolveAgentRoute({
       cfg,
@@ -495,9 +496,9 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
     const fromLabel = formatInboundFromLabel({
       isGroup: kind !== "direct",
-      groupLabel: roomLabel,
+      groupLabel: topicLabel,
       groupId: channelId,
-      groupFallback: roomLabel || "Channel",
+      groupFallback: topicLabel || roomLabel || "Channel",
       directLabel: senderName,
       directId: senderId,
     });
@@ -506,15 +507,13 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     const inboundLabel =
       kind === "direct"
         ? `Zulip DM from ${senderName}`
-        : `Zulip message in ${roomLabel} from ${senderName}`;
+        : `Zulip message in ${topicLabel} from ${senderName}`;
     core.system.enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
       sessionKey,
       contextKey: `zulip:message:${channelId}:${messageId}`,
     });
 
-    const textWithId = topicName
-      ? `${bodyText}\n[zulip message id: ${messageId} stream: ${streamName} topic: ${topicName}]`
-      : `${bodyText}\n[zulip message id: ${messageId} channel: ${channelId}]`;
+    const textWithId = bodyText;
     const body = core.channel.reply.formatInboundEnvelope({
       channel: "Zulip",
       from: fromLabel,
