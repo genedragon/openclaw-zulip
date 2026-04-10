@@ -8,10 +8,12 @@ import {
   normalizeAccountId,
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
+  resolveThreadSessionKeys,
   setAccountEnabledInConfigSection,
   type ChannelMessageActionAdapter,
   type ChannelMessageActionName,
   type ChannelPlugin,
+  type OpenClawConfig,
 } from "openclaw/plugin-sdk";
 import { ZulipConfigSchema } from "./config-schema.js";
 import { resolveZulipGroupRequireMention } from "./group-mentions.js";
@@ -152,6 +154,68 @@ function formatAllowEntry(entry: string): string {
   return trimmed.replace(/^(zulip|user):/i, "").toLowerCase();
 }
 
+function parseZulipOutboundTarget(target: string): { isDm: boolean; id: string } | null {
+  const normalized = normalizeZulipMessagingTarget(target);
+  if (!normalized) return null;
+
+  if (normalized.startsWith("user:")) {
+    return { isDm: true, id: normalized.slice("user:".length) };
+  }
+  if (normalized.startsWith("@")) {
+    return { isDm: true, id: normalized.slice(1) };
+  }
+  if (normalized.startsWith("stream:")) {
+    return { isDm: false, id: normalized.slice("stream:".length) };
+  }
+  return { isDm: false, id: normalized.replace(/^stream:/, "") };
+}
+
+function resolveZulipOutboundSessionRoute(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+  accountId?: string | null;
+  target: string;
+  currentSessionKey?: string;
+  resolvedTarget?: { to: string; kind: string; display?: string; source: string };
+  replyToId?: string | null;
+  threadId?: string | number | null;
+}) {
+  const parsed = parseZulipOutboundTarget(params.target);
+  if (!parsed) return null;
+
+  const core = getZulipRuntime();
+  const peer = {
+    kind: (parsed.isDm ? "direct" : "channel") as "direct" | "channel",
+    id: parsed.id,
+  };
+
+  const route = core.channel.routing.resolveAgentRoute({
+    cfg: params.cfg,
+    channel: "zulip",
+    accountId: params.accountId,
+    peer,
+  });
+
+  const baseSessionKey = route.sessionKey;
+  const threadId = params.threadId != null ? String(params.threadId).trim() || undefined : undefined;
+
+  const threadKeys = resolveThreadSessionKeys({
+    baseSessionKey,
+    threadId: threadId ?? null,
+    parentSessionKey: threadId ? baseSessionKey : undefined,
+  });
+
+  return {
+    sessionKey: threadKeys.sessionKey,
+    baseSessionKey,
+    peer,
+    chatType: parsed.isDm ? ("direct" as const) : ("channel" as const),
+    from: parsed.isDm ? `zulip:${parsed.id}` : `zulip:channel:${parsed.id}`,
+    to: parsed.isDm ? `user:${parsed.id}` : `stream:${parsed.id}`,
+    threadId,
+  };
+}
+
 export const zulipPlugin: ChannelPlugin<ResolvedZulipAccount> = {
   id: "zulip",
   meta: {
@@ -253,6 +317,7 @@ export const zulipPlugin: ChannelPlugin<ResolvedZulipAccount> = {
       looksLikeId: looksLikeZulipTargetId,
       hint: "<streamName|user:ID|stream:NAME|topic:NAME>",
     },
+    resolveOutboundSessionRoute: (params) => resolveZulipOutboundSessionRoute(params),
   },
   outbound: {
     deliveryMode: "direct",
