@@ -248,9 +248,26 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     }
 
     const kind = channelKind(message.type);
-    const chatType = channelChatType(kind);
     const senderName = message.sender_full_name?.trim() || message.sender_email || senderId;
     const rawText = message.content?.trim() || "";
+
+    // Detect group DMs (huddles): Zulip uses type="private" for both 1:1 and group DMs.
+    // For group DMs, display_recipient is an array with 3+ user objects.
+    const isGroupDm =
+      message.type === "private" &&
+      Array.isArray(message.display_recipient) &&
+      message.display_recipient.length > 2;
+    const effectiveKind: ChatType = isGroupDm ? "group" : kind;
+    const chatType = channelChatType(effectiveKind);
+
+    // For group DMs, collect all participant IDs (excluding the bot) for reply routing,
+    // and build a stable channel ID from sorted participant IDs.
+    let huddleParticipantIds: number[] = [];
+    let huddleAllIds: number[] = [];
+    if (isGroupDm && Array.isArray(message.display_recipient)) {
+      huddleAllIds = message.display_recipient.map((u) => u.id).sort((a, b) => a - b);
+      huddleParticipantIds = huddleAllIds.filter((id) => id !== botUserId);
+    }
 
     // Determine stream/channel info
     let streamId: number | undefined;
@@ -270,7 +287,11 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       }
     }
 
-    const channelId = message.type === "stream" ? String(streamId) : senderId;
+    const channelId = message.type === "stream"
+      ? String(streamId)
+      : isGroupDm
+        ? `huddle:${huddleAllIds.join(",")}`
+        : senderId;
     const dmPolicy = account.config.dmPolicy ?? "pairing";
     const normalizedAllowFrom = normalizeZulipAllowList(account.config.allowFrom ?? []);
     const normalizedGroupAllowFrom = normalizeZulipAllowList(
@@ -285,7 +306,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       }),
     );
     const accessDecision = resolveDmGroupAccessWithLists({
-      isGroup: kind !== "direct",
+      isGroup: effectiveKind !== "direct",
       dmPolicy,
       groupPolicy,
       allowFrom: normalizedAllowFrom,
@@ -404,8 +425,8 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       channel: "zulip",
       accountId: account.accountId,
       peer: {
-        kind,
-        id: kind === "direct" ? senderId : channelId,
+        kind: effectiveKind,
+        id: effectiveKind === "direct" ? senderId : channelId,
       },
     });
 
@@ -417,7 +438,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       parentSessionKey: threadId ? baseSessionKey : undefined,
     });
     const sessionKey = threadKeys.sessionKey;
-    const historyKey = kind === "direct" ? null : sessionKey;
+    const historyKey = effectiveKind === "direct" ? null : sessionKey;
 
     const mentionRegexes = core.channel.mentions.buildMentionRegexes(cfg, route.agentId);
     // Zulip content is HTML; mentions appear as <span class="user-mention" data-user-id="ID">@Name</span>
@@ -430,7 +451,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       kind !== "direct" &&
       (htmlMentionedById || markdownMentioned ||
         core.channel.mentions.matchesMentionPatterns(rawText, mentionRegexes));
-    runtime.log?.(`[MENTION-DEBUG] account=${account.accountId} botUserId=${botUserId} botName=${botName} htmlMatch=${htmlMentionedById} mdMatch=${markdownMentioned} wasMentioned=${wasMentioned} rawText=${rawText.substring(0, 100)}`);
+    runtime.log?.(`[MENTION-DEBUG] account=${account.accountId} botUserId=${botUserId} botName=${botName} htmlMatch=${htmlMentionedById} mdMatch=${markdownMentioned} wasMentioned=${wasMentioned} isGroupDm=${isGroupDm} kind=${kind} effectiveKind=${effectiveKind} rawText=${rawText.substring(0, 100)}`);
     const pendingBody = rawText || "[Zulip message]";
     const pendingSender = senderName;
     const recordPendingHistory = () => {
@@ -495,7 +516,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     });
 
     const fromLabel = formatInboundFromLabel({
-      isGroup: kind !== "direct",
+      isGroup: effectiveKind !== "direct",
       groupLabel: topicLabel,
       groupId: channelId,
       groupFallback: topicLabel || roomLabel || "Channel",
@@ -505,9 +526,11 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
     const preview = bodyText.replace(/\s+/g, " ").slice(0, 160);
     const inboundLabel =
-      kind === "direct"
+      effectiveKind === "direct"
         ? `Zulip DM from ${senderName}`
-        : `Zulip message in ${topicLabel} from ${senderName}`;
+        : isGroupDm
+          ? `Zulip group DM from ${senderName}`
+          : `Zulip message in ${topicLabel} from ${senderName}`;
     core.system.enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
       sessionKey,
       contextKey: `zulip:message:${channelId}:${messageId}`,
@@ -543,7 +566,13 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       });
     }
 
-    const to = kind === "direct" ? `user:${senderId}` : streamId ? `stream:${streamId}` : `channel:${channelId}`;
+    const to = isGroupDm
+      ? `huddle:${huddleParticipantIds.join(",")}`
+      : kind === "direct"
+        ? `user:${senderId}`
+        : streamId
+          ? `stream:${streamId}`
+          : `channel:${channelId}`;
     const mediaPayload = buildAgentMediaPayload([]);
     const inboundHistory =
       historyKey && historyLimit > 0
@@ -560,16 +589,18 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       RawBody: bodyText,
       CommandBody: bodyText,
       From:
-        kind === "direct"
+        effectiveKind === "direct"
           ? `zulip:${senderId}`
-          : `zulip:channel:${channelId}`,
+          : isGroupDm
+            ? `zulip:huddle:${huddleAllIds.join(",")}`
+            : `zulip:channel:${channelId}`,
       To: to,
       SessionKey: sessionKey,
       ParentSessionKey: threadKeys.parentSessionKey,
       AccountId: route.accountId,
       ChatType: chatType,
       ConversationLabel: fromLabel,
-      GroupSubject: kind !== "direct" ? topicName || roomLabel : undefined,
+      GroupSubject: effectiveKind !== "direct" ? (isGroupDm ? "Group DM" : topicName || roomLabel) : undefined,
       GroupChannel: streamName ? `#${streamName}` : undefined,
       GroupSpace: message.type === "stream" ? String(streamId) : undefined,
       SenderName: senderName,
@@ -579,14 +610,14 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       MessageSid: messageId,
       MessageThreadId: threadId,
       Timestamp: message.timestamp ? message.timestamp * 1000 : undefined,
-      WasMentioned: kind !== "direct" ? effectiveWasMentioned : undefined,
+      WasMentioned: effectiveKind !== "direct" ? effectiveWasMentioned : undefined,
       CommandAuthorized: commandAuthorized,
       OriginatingChannel: "zulip" as const,
       OriginatingTo: to,
       ...mediaPayload,
     });
 
-    if (kind === "direct") {
+    if (kind === "direct" || isGroupDm) {
       const sessionCfg = cfg.session;
       const storePath = core.channel.session.resolveStorePath(sessionCfg?.store, {
         agentId: route.agentId,

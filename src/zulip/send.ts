@@ -27,7 +27,8 @@ export type ZulipSendResult = {
 
 type ZulipTarget =
   | { kind: "stream"; name: string; topic?: string }
-  | { kind: "user"; id?: string; email?: string };
+  | { kind: "user"; id?: string; email?: string }
+  | { kind: "huddle"; userIds: number[] };
 
 const botUserCache = new Map<string, ZulipUser>();
 const userByEmailCache = new Map<string, ZulipUser>();
@@ -99,6 +100,16 @@ function parseZulipTarget(raw: string, opts?: ZulipSendOpts): ZulipTarget {
       throw new Error("User email is required for Zulip sends");
     }
     return { kind: "user", email };
+  }
+
+  // huddle:<id1>,<id2>,... format (group DM)
+  if (lower.startsWith("huddle:")) {
+    const idsStr = trimmed.slice("huddle:".length).trim();
+    const userIds = idsStr.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n > 0);
+    if (userIds.length < 1) {
+      throw new Error("Huddle requires at least one user ID (huddle:id1,id2,...)");
+    }
+    return { kind: "huddle", userIds };
   }
 
   // Bare string — try as stream name
@@ -254,6 +265,32 @@ export async function sendMessageZulip(
     return {
       messageId: String(result.id),
       streamId: target.name,
+    };
+  } else if (target.kind === "huddle") {
+    // Group DM (huddle) message
+    const body = new URLSearchParams({
+      type: "direct",
+      to: JSON.stringify(target.userIds),
+      content: message,
+    });
+
+    result = await client.request<{ id: number }>("/messages", {
+      method: "POST",
+      body: body.toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    core.channel.activity.record({
+      channel: "zulip",
+      accountId: account.accountId,
+      direction: "outbound",
+    });
+
+    return {
+      messageId: String(result.id),
+      recipientId: target.userIds.join(","),
     };
   } else {
     // DM message

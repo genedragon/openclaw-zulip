@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "openclaw/plugin-sdk": ["/home/ubuntu/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/dist/plugin-sdk/index.d.ts"],
+      "openclaw/plugin-sdk/*": ["/home/ubuntu/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/dist/plugin-sdk/*/index.d.ts", "/home/ubuntu/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/dist/plugin-sdk/*.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "index.ts"]
+}

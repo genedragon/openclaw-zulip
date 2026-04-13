@@ -20,6 +20,10 @@ export function normalizeZulipMessagingTarget(raw: string): string | undefined {
     const id = trimmed.slice("zulip:".length).trim();
     return id ? `user:${id}` : undefined;
   }
+  if (lower.startsWith("huddle:")) {
+    const ids = trimmed.slice("huddle:".length).trim();
+    return ids ? `huddle:${ids}` : undefined;
+  }
   if (trimmed.startsWith("@")) {
     const id = trimmed.slice(1).trim();
     return id ? `@${id}` : undefined;
@@ -36,7 +40,7 @@ export function looksLikeZulipTargetId(raw: string): boolean {
   if (!trimmed) {
     return false;
   }
-  if (/^(user|stream|topic|zulip):/i.test(trimmed)) {
+  if (/^(user|stream|topic|zulip|huddle):/i.test(trimmed)) {
     return true;
   }
   if (/^[@#]/.test(trimmed)) {
