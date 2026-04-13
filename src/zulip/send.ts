@@ -226,14 +226,10 @@ export async function sendMessageZulip(
   let result: { id: number };
 
   if (target.kind === "stream") {
-    // Stream message
-    const topic = target.topic?.trim() || opts.topic?.trim();
-    if (!topic) {
-      throw new Error(
-        `Zulip stream message to "${target.name}" requires a topic. ` +
-        `Specify threadId in the message tool call, or include topic in the target.`
-      );
-    }
+    // Stream message — default topic to "general" when none provided
+    // (matches Zulip web UI behaviour; prevents delivery-queue failures
+    //  when agents omit threadId in cross-channel sends)
+    const topic = target.topic?.trim() || opts.topic?.trim() || "general";
     const body = new URLSearchParams({
       type: "stream",
       to: target.name,
