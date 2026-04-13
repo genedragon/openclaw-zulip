@@ -42,5 +42,8 @@ export function looksLikeZulipTargetId(raw: string): boolean {
   if (/^[@#]/.test(trimmed)) {
     return true;
   }
-  return /^[a-z0-9]{1,}$/i.test(trimmed);
+  // Allow any non-empty string as a potential stream name.
+  // Zulip stream names can contain hyphens, spaces, underscores, emoji, etc.
+  // The old regex /^[a-z0-9]+$/i rejected common names like "welcome-team".
+  return trimmed.length > 0;
 }
