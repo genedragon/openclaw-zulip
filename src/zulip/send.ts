@@ -226,10 +226,10 @@ export async function sendMessageZulip(
   let result: { id: number };
 
   if (target.kind === "stream") {
-    // Stream message — default topic to "general" when none provided
+    // Stream message — default topic to "general chat" when none provided
     // (matches Zulip web UI behaviour; prevents delivery-queue failures
     //  when agents omit threadId in cross-channel sends)
-    const topic = target.topic?.trim() || opts.topic?.trim() || "general";
+    const topic = target.topic?.trim() || opts.topic?.trim() || "general chat";
     const body = new URLSearchParams({
       type: "stream",
       to: target.name,
