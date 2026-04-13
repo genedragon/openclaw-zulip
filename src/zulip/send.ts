@@ -112,6 +112,12 @@ function parseZulipTarget(raw: string, opts?: ZulipSendOpts): ZulipTarget {
     return { kind: "huddle", userIds };
   }
 
+  // Bare number — treat as user ID (prevents misrouting to stream)
+  // Agents sometimes pass just "8" instead of "user:8" when initiating DMs
+  if (/^\d+$/.test(trimmed)) {
+    return { kind: "user", id: trimmed };
+  }
+
   // Bare string — try as stream name
   return { kind: "stream", name: trimmed, topic: opts?.topic };
 }
