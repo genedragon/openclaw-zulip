@@ -4,7 +4,7 @@
 // so agents can call them like any other OpenClaw tool.
 
 import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk";
+import type { AnyAgentTool } from "openclaw/plugin-sdk/plugin-entry";
 import {
   createZulipClient,
   fetchZulipMessages,

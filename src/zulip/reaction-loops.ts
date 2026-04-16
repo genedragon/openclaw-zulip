@@ -3,7 +3,7 @@
 // Manages rotating emoji reactions to indicate ongoing work.
 // Auto-cleanup after TTL to prevent orphaned reactions.
 
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { addZulipReaction, removeZulipReaction } from "./reactions.js";
 
 const DEFAULT_ICONS = ["thinking", "brain", "hourglass"];

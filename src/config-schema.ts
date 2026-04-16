@@ -4,7 +4,7 @@ import {
   GroupPolicySchema,
   MarkdownConfigSchema,
   requireOpenAllowFrom,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/channel-config-primitives";
 import { z } from "zod";
 
 const ZulipAccountSchemaBase = z

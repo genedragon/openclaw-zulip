@@ -3,30 +3,25 @@ import type {
   ChatType,
   OpenClawConfig,
   ReplyPayload,
-  RuntimeEnv,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/core";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/plugin-runtime";
+import { buildAgentMediaPayload } from "openclaw/plugin-sdk/agent-media-payload";
+import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
+import { createReplyPrefixOptions, createTypingCallbacks } from "openclaw/plugin-sdk/channel-reply-pipeline";
+import { DM_GROUP_ACCESS_REASON, readStoreAllowFromForDmPolicy, resolveDmGroupAccessWithLists } from "openclaw/plugin-sdk/channel-policy";
+import { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
+import { buildPendingHistoryContextFromMap, clearHistoryEntriesIfEnabled, recordPendingHistoryEntryIfEnabled } from "openclaw/plugin-sdk/reply-history";
 import {
-  buildAgentMediaPayload,
-  DM_GROUP_ACCESS_REASON,
-  createScopedPairingAccess,
-  createReplyPrefixOptions,
-  createTypingCallbacks,
-  logInboundDrop,
-  logTypingFailure,
-  buildPendingHistoryContextFromMap,
-  clearHistoryEntriesIfEnabled,
-  DEFAULT_GROUP_HISTORY_LIMIT,
-  recordPendingHistoryEntryIfEnabled,
   isDangerousNameMatchingEnabled,
-  resolveControlCommandGate,
-  readStoreAllowFromForDmPolicy,
-  resolveDmGroupAccessWithLists,
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
-  resolveChannelMediaMaxBytes,
   warnMissingProviderGroupPolicyFallbackOnce,
-  type HistoryEntry,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/config-runtime";
+import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
+import { normalizeAccountId } from "openclaw/plugin-sdk/core";
+import { DEFAULT_GROUP_HISTORY_LIMIT } from "openclaw/plugin-sdk/reply-history";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import { getZulipRuntime } from "../runtime.js";
 import { resolveZulipAccount } from "./accounts.js";
 import {
@@ -52,6 +47,35 @@ import { resolveOncharPrefixes, stripOncharPrefix } from "./monitor-onchar.js";
 import { runWithReconnect } from "./reconnect.js";
 import { sendMessageZulip } from "./send.js";
 import { resolveZulipGroupRequireMention } from "../group-mentions.js";
+
+// Inline helper: createScopedPairingAccess not exported from plugin-sdk subpaths in 2026.4.x
+function createScopedPairingAccess(params: {
+  core: { channel: { pairing: { readAllowFromStore: (p: { channel: string; accountId: string }) => Promise<string[]>; upsertPairingRequest: (p: any) => Promise<{ code: string; created: boolean }> } } };
+  channel: string;
+  accountId: string;
+}) {
+  const resolvedAccountId = normalizeAccountId(params.accountId);
+  return {
+    accountId: resolvedAccountId,
+    readAllowFromStore: () =>
+      params.core.channel.pairing.readAllowFromStore({
+        channel: params.channel,
+        accountId: resolvedAccountId,
+      }),
+    readStoreForDmPolicy: (provider: string, accountId: string) =>
+      params.core.channel.pairing.readAllowFromStore({
+        channel: provider,
+        accountId: normalizeAccountId(accountId),
+      }),
+    upsertPairingRequest: (input: { id: string; meta?: { name?: string } }) =>
+      params.core.channel.pairing.upsertPairingRequest({
+        channel: params.channel,
+        accountId: resolvedAccountId,
+        ...input,
+      }),
+  };
+}
+
 
 export type MonitorZulipOpts = {
   botEmail?: string;

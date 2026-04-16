@@ -1,4 +1,5 @@
-import { resolveAllowlistMatchSimple, resolveEffectiveAllowFromLists } from "openclaw/plugin-sdk";
+import { resolveAllowlistMatchSimple } from "openclaw/plugin-sdk/allow-from";
+import { resolveEffectiveAllowFromLists } from "openclaw/plugin-sdk/channel-policy";
 
 export function normalizeZulipAllowEntry(entry: string): string {
   const trimmed = entry.trim();
