@@ -1,4 +1,4 @@
-import type { BaseProbeResult } from "openclaw/plugin-sdk";
+import type { BaseProbeResult } from "openclaw/plugin-sdk/channel-contract";
 import { Agent as HttpsAgent } from "node:https";
 import { normalizeZulipBaseUrl, readZulipError, type ZulipUser } from "./client.js";
 

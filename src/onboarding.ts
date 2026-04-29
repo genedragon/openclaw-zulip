@@ -1,4 +1,5 @@
-import type { ChannelOnboardingAdapter, OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk";
+import type { ChannelOnboardingAdapter } from "openclaw/plugin-sdk/channel-lifecycle";
+import type { OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk/core";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   listZulipAccountIds,

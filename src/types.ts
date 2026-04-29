@@ -1,4 +1,5 @@
-import type { BlockStreamingCoalesceConfig, DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/channel-config-primitives";
+import type { BlockStreamingCoalesceConfig } from "openclaw/plugin-sdk/config-runtime";
 
 export type ZulipChatMode = "oncall" | "onmessage" | "onchar";
 

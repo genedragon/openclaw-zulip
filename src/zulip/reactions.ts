@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { resolveZulipAccount } from "./accounts.js";
 import { createZulipClient, fetchZulipMe, type ZulipClient } from "./client.js";
 

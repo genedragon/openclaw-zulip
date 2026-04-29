@@ -1,3 +1,4 @@
+import { resolveAllowlistProviderRuntimeGroupPolicy, resolveDefaultGroupPolicy } from "openclaw/plugin-sdk/config-runtime";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,
@@ -6,15 +7,12 @@ import {
   formatPairingApproveHint,
   migrateBaseNameToDefaultAccount,
   normalizeAccountId,
-  resolveAllowlistProviderRuntimeGroupPolicy,
-  resolveDefaultGroupPolicy,
   resolveThreadSessionKeys,
   setAccountEnabledInConfigSection,
-  type ChannelMessageActionAdapter,
-  type ChannelMessageActionName,
-  type ChannelPlugin,
-  type OpenClawConfig,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/core";
+import type { ChannelMessageActionAdapter, ChannelMessageActionName } from "openclaw/plugin-sdk/channel-contract";
+import type { ChannelPlugin } from "openclaw/plugin-sdk/channel-entry-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { ZulipConfigSchema } from "./config-schema.js";
 import { resolveZulipGroupRequireMention } from "./group-mentions.js";
 import {
