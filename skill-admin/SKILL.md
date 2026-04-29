@@ -1,6 +1,6 @@
 ---
 name: zulip-admin
-description: Zulip organization administration via the REST API. Use when managing users (create, deactivate, reactivate, update roles), channels (create, archive, update permissions, subscribe/unsubscribe users), auditing realm settings, managing user groups, custom profile fields, custom emoji, linkifiers, or performing any Zulip org-admin operation. Assumes the calling agent has Organization Administrator privileges. NOT for: reading/sending messages (use the zulip skill), or OpenClaw gateway config.
+description: "Zulip organization administration via the REST API. Use when managing users (create, deactivate, reactivate, update roles), channels (create, archive, update permissions, subscribe/unsubscribe users), auditing realm settings, managing user groups, custom profile fields, custom emoji, linkifiers, or performing any Zulip org-admin operation. Assumes the calling agent has Organization Administrator privileges. NOT for: reading/sending messages (use the zulip skill), or OpenClaw gateway config."
 ---
 
 # Zulip Admin Skill
@@ -60,7 +60,7 @@ Parameters: `full_name`, `role` (100=owner, 200=admin, 300=mod, 400=member, 600=
 DELETE /api/v1/users/{user_id}
 ```
 
-⚠️ **Destructive** — always confirm with the org owner first. Deactivating a user also deactivates their bots.
+â ï¸ **Destructive** â always confirm with the org owner first. Deactivating a user also deactivates their bots.
 
 Optional `actions`: `delete_profile`, `delete_public_channel_messages`, `delete_private_channel_messages`, `delete_direct_messages`.
 
@@ -116,7 +116,7 @@ GET /api/v1/streams/{stream_id}
 
 ### Create a Channel
 
-Use the subscribe endpoint — Zulip auto-creates channels that don't exist:
+Use the subscribe endpoint â Zulip auto-creates channels that don't exist:
 
 ```
 POST /api/v1/users/me/subscriptions
@@ -131,10 +131,10 @@ curl -sSX POST "$REALM/api/v1/users/me/subscriptions" \
 ```
 
 Key parameters for new channels:
-- `invite_only` (bool) — true = private channel
-- `is_web_public` (bool) — publicly readable without auth
-- `is_default_stream` (bool) — auto-subscribe new members
-- `announce` (bool) — notification bot announces creation
+- `invite_only` (bool) â true = private channel
+- `is_web_public` (bool) â publicly readable without auth
+- `is_default_stream` (bool) â auto-subscribe new members
+- `announce` (bool) â notification bot announces creation
 - `history_public_to_subscribers` (bool)
 
 ### Subscribe Users to a Channel
@@ -175,7 +175,7 @@ Parameters: `description`, `new_name`, `is_private`, `is_default_stream`, `messa
 DELETE /api/v1/streams/{stream_id}
 ```
 
-⚠️ **Destructive** — confirm first. Archived channels are read-only and hidden. Messages are preserved.
+â ï¸ **Destructive** â confirm first. Archived channels are read-only and hidden. Messages are preserved.
 
 ### Get Channel Subscribers
 
@@ -195,7 +195,7 @@ GET /api/v1/users/me/{stream_id}/topics
 POST /api/v1/streams/{stream_id}/delete_topic
 ```
 
-⚠️ **Destructive** — deletes all messages in the topic.
+â ï¸ **Destructive** â deletes all messages in the topic.
 
 ---
 
@@ -203,13 +203,13 @@ POST /api/v1/streams/{stream_id}/delete_topic
 
 When auditing channels, check:
 
-1. **Privacy alignment** — Is `invite_only` set correctly? Should it be private?
-2. **Subscriber list** — Are the right users/bots subscribed? Any unexpected members?
-3. **Description** — Is it clear what the channel is for?
-4. **Posting permissions** — Who can post? (`can_send_message_group`)
-5. **Message retention** — Is a retention policy set? Should it be?
-6. **Default channel** — Should new users auto-join this?
-7. **Stale channels** — Any channels with no recent activity that should be archived?
+1. **Privacy alignment** â Is `invite_only` set correctly? Should it be private?
+2. **Subscriber list** â Are the right users/bots subscribed? Any unexpected members?
+3. **Description** â Is it clear what the channel is for?
+4. **Posting permissions** â Who can post? (`can_send_message_group`)
+5. **Message retention** â Is a retention policy set? Should it be?
+6. **Default channel** â Should new users auto-join this?
+7. **Stale channels** â Any channels with no recent activity that should be archived?
 
 Report findings as a table:
 
@@ -354,14 +354,14 @@ DELETE /api/v1/invites/{invite_id}
 
 When setting up a new bot for the realm:
 
-1. **Create bot** in Zulip UI (Settings → Bots) or via API
-2. **Record credentials** — bot email + API key
+1. **Create bot** in Zulip UI (Settings â Bots) or via API
+2. **Record credentials** â bot email + API key
 3. **Set role** if needed (`PATCH /api/v1/users/{bot_id}` with `role`)
-4. **Subscribe to channels** — use the subscribe endpoint with `principals`
-5. **Upload avatar** — `POST /api/v1/users/me/avatar`
+4. **Subscribe to channels** â use the subscribe endpoint with `principals`
+5. **Upload avatar** â `POST /api/v1/users/me/avatar`
 6. **Configure in OpenClaw** if it's an agent bot (add to `openclaw.json` agents + bindings)
-7. **Restart the gateway** — `openclaw gateway restart`
-8. **Test connectivity** — verify the bot can read/write in expected channels
+7. **Restart the gateway** â `openclaw gateway restart`
+8. **Test connectivity** â verify the bot can read/write in expected channels
 
 ---
 
@@ -383,16 +383,16 @@ When setting up a new bot for the realm:
 3. Promote to admin if needed: `PATCH /api/v1/users/{id}` with `role: 200`
 4. Subscribe to required channels
 5. Upload avatar
-6. Add to OpenClaw config (`openclaw.json` — agents + bindings)
+6. Add to OpenClaw config (`openclaw.json` â agents + bindings)
 7. Restart OpenClaw gateway
 8. Test: send @mention in a subscribed channel
 
 ### Periodic Channel Audit
 
-1. `GET /api/v1/streams` — list all channels
+1. `GET /api/v1/streams` â list all channels
 2. For each channel, check subscribers: `GET /api/v1/streams/{id}/members`
 3. Cross-reference with active users (`is_active: true`)
-4. Flag channels with 0 active subscribers → candidate for archival
+4. Flag channels with 0 active subscribers â candidate for archival
 5. Flag private channels with unexpected members
 6. Report findings to the org owner
 
@@ -405,7 +405,7 @@ curl -sSX PATCH "$REALM/api/v1/users/{user_id}" \
   --data-urlencode 'role=200'
 ```
 
-⚠️ Only do this when explicitly authorized by the org owner.
+â ï¸ Only do this when explicitly authorized by the org owner.
 
 ---
 
@@ -415,10 +415,10 @@ curl -sSX PATCH "$REALM/api/v1/users/{user_id}" \
 2. **Never archive channels without explicit approval**
 3. **Never delete topics without explicit approval**
 4. **Never change the organization owner role**
-5. **Always log what you're about to do before doing it** — state the action, target, and rationale
-6. **Confirm destructive operations** — if in doubt, ask
-7. **Audit before modify** — always check current state before making changes
-8. **Keep credentials secure** — never expose API keys in messages or logs
+5. **Always log what you're about to do before doing it** â state the action, target, and rationale
+6. **Confirm destructive operations** â if in doubt, ask
+7. **Audit before modify** â always check current state before making changes
+8. **Keep credentials secure** â never expose API keys in messages or logs
 
 ---
 
@@ -435,11 +435,11 @@ curl -sSX PATCH "$REALM/api/v1/users/{user_id}" \
 
 ### Auth Chain
 
-Zulip auth: hostname → RealmDomain → Realm → `get_user_by_delivery_email()` → `check_password()`.
+Zulip auth: hostname â RealmDomain â Realm â `get_user_by_delivery_email()` â `check_password()`.
 
 - `delivery_email` is canonical for auth (not `email`)
-- Always use Zulip's management APIs for user creation — raw SQL skips critical fields like `delivery_email`
-- Django passwords require `set_password()` — never write password hashes directly
+- Always use Zulip's management APIs for user creation â raw SQL skips critical fields like `delivery_email`
+- Django passwords require `set_password()` â never write password hashes directly
 
 ### Checking Realm Health
 
@@ -460,9 +460,9 @@ curl -sS -u "$BOT_EMAIL:$BOT_API_KEY" "$REALM/api/v1/users" | python3 -c "
 import json,sys
 d = json.load(sys.stdin)
 for u in d['members']:
-    status = '✅' if u['is_active'] else '❌'
+    status = 'â' if u['is_active'] else 'â'
     role = {100:'owner',200:'admin',300:'mod',400:'member',600:'guest'}.get(u['role'],'?')
-    bot = ' 🤖' if u['is_bot'] else ''
+    bot = ' ð¤' if u['is_bot'] else ''
     print(f\"{status} {u['user_id']:3d} | {u['full_name']:20s} | {role:8s}{bot}\")
 "
 ```
