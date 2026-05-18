@@ -1,6 +1,6 @@
 import { formatInboundFromLabel as formatInboundFromLabelShared } from "openclaw/plugin-sdk/channel-inbound";
 import { resolveThreadSessionKeys as resolveThreadSessionKeysShared } from "openclaw/plugin-sdk/core";
-export { rawDataToString } from "openclaw/plugin-sdk/browser-support";
+export { rawDataToString } from "openclaw/plugin-sdk/gateway-runtime";
 export { createDedupeCache } from "openclaw/plugin-sdk/core";
 
 export const formatInboundFromLabel = formatInboundFromLabelShared;
