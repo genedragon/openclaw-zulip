@@ -1,6 +1,15 @@
 {
   "id": "zulip",
   "channels": ["zulip"],
+  "contracts": {
+    "tools": [
+      "zulip_fetch_messages",
+      "zulip_download_file",
+      "zulip_react_loop_start",
+      "zulip_react_loop_stop",
+      "zulip_react_loop_list"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

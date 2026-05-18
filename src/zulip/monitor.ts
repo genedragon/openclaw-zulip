@@ -641,7 +641,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       ...mediaPayload,
     });
 
-    if (kind === "direct" || isGroupDm) {
+    {
       const sessionCfg = cfg.session;
       const storePath = core.channel.session.resolveStorePath(sessionCfg?.store, {
         agentId: route.agentId,
